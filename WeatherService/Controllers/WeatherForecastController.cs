@@ -16,15 +16,36 @@ namespace WeatherService.Controllers
         public WeatherForecastController(ILogger<WeatherForecastController> logger)
         {
             _logger = logger;
-        }
-
+         }
+        
+        //async function for API call
         [HttpGet(Name = "GetForecast")]
-        public WeatherForecast Get()
+        public async Task<WeatherForecast> Get(String postal_code)
         {
-            WeatherForecast forecast = WeatherService.Implementations.WeatherForecastImplementation.GetWeatherForecast();
+            WeatherForecast forecast = await WeatherService.Implementations.WeatherForecastImplementation.GetWeatherForecast(postal_code);
 
             //todo: set Summary value on forecast response using Summaries data dictionary
+            float summaryInt = forecast.temperature.celsius;
 
+            //checks if temp is in Summaries; matches closest summary if not
+            if(Summaries.ContainsKey((int)summaryInt)) {
+                forecast.summary = Summaries[(int)summaryInt];
+            }
+
+            //finds closest summary int
+            else {
+                int lowerBound = 0;
+                
+                foreach(KeyValuePair<int, string> kvp in Summaries) {
+                    if(kvp.Key < summaryInt) {
+                        lowerBound = kvp.Key;
+                    }
+                    else if (kvp.Key > summaryInt) {
+                        forecast.summary = (summaryInt - lowerBound <= kvp.Key - summaryInt) ? Summaries[lowerBound] : kvp.Value;
+                        break;
+                    }
+                }
+            }
             return forecast;
         }
     }
